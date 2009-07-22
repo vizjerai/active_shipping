@@ -210,6 +210,10 @@ module ActiveMerchant
           xml_node << XmlNode.new('Address') do |address_node|
             address_node << XmlNode.new('PostalCode', location.postal_code)
             address_node << XmlNode.new("CountryCode", location.country_code(:alpha2))
+            case location.address_type
+              when 'commercial' then address_node << XmlNode.new('Residential', false)
+              when 'residential' then address_node << XmlNode.new('Residential', true)
+            end
           end
         end
       end
