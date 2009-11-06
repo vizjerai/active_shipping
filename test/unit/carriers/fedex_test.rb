@@ -9,9 +9,11 @@ class FedExTest < Test::Unit::TestCase
 
   def test_initialize_options_requirements
     assert_raises ArgumentError do FedEx.new end
-    assert_raises ArgumentError do FedEx.new(:login => '999999999') end
-    assert_raises ArgumentError do FedEx.new(:password => '7777777') end
-    assert_nothing_raised { FedEx.new(:key => '999999999', :password => '7777777', :account => '123', :login => '123')}
+    assert_raises ArgumentError do FedEx.new(:password => '7777777', :account => '123', :login => '555555') end
+    assert_raises ArgumentError do FedEx.new(:key => '999999999', :account => '123', :login => '555555') end
+    assert_raises ArgumentError do FedEx.new(:key => '999999999', :password => '7777777', :login => '555555') end
+    assert_raises ArgumentError do FedEx.new(:key => '999999999', :password => '7777777', :account => '123') end
+    assert_nothing_raised { FedEx.new(:key => '999999999', :password => '7777777', :account => '123', :login => '555555')}
   end
 
   # def test_no_rates_response
