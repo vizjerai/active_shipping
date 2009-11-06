@@ -257,20 +257,7 @@ module ActiveMerchant
 
         [web_authentication_detail, client_detail, trasaction_detail]
       end
-=begin
-      def build_location_node(name, location)
-        location_node = XmlNode.new(name) do |xml_node|
-          xml_node << XmlNode.new('Address') do |address_node|
-            address_node << XmlNode.new('PostalCode', location.postal_code)
-            address_node << XmlNode.new("CountryCode", location.country_code(:alpha2))
-            case location.address_type
-              when 'commercial' then address_node << XmlNode.new('Residential', false)
-              when 'residential' then address_node << XmlNode.new('Residential', true)
-            end
-          end
-        end
-      end
-=end
+
       def parse_rate_response(origin, destination, packages, response, options)
         rate_estimates = []
         success = false
