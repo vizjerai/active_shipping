@@ -1,7 +1,6 @@
 require File.dirname(__FILE__) + '/../../test_helper'
 
 class USPSTest < Test::Unit::TestCase
-  
   def setup
     @packages  = TestFixtures.packages
     @locations = TestFixtures.locations
@@ -9,9 +8,13 @@ class USPSTest < Test::Unit::TestCase
     @international_rate_responses = {
       :vanilla => xml_fixture('usps/beverly_hills_to_ottawa_book_rate_response')
     }
-
   end
-  
+
+  def test_initialize_options_requirements
+    assert_raises ArgumentError do USPS.new end
+    assert_nothing_raised ArgumentError do USPS.new(:login => '999999999') end
+  end
+
   # TODO: test_parse_domestic_rate_response
   # TODO: test_build_us_rate_request
   # TODO: test_build_world_rate_request
