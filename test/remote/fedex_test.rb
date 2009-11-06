@@ -6,6 +6,7 @@ class FedExTest < Test::Unit::TestCase
     @packages  = TestFixtures.packages
     @locations = TestFixtures.locations
     @carrier   = FedEx.new(fixtures(:fedex))
+    @test_mode = fixtures(:fedex)[:test]
   end
 
   def test_us_to_canada
@@ -15,7 +16,7 @@ class FedExTest < Test::Unit::TestCase
                    @locations[:beverly_hills],
                    @locations[:ottawa],
                    @packages.values_at(:wii),
-                   :test => true
+                   :test => @test_mode
                  )
       assert !response.rates.blank?
       response.rates.each do |rate|
@@ -31,7 +32,7 @@ class FedExTest < Test::Unit::TestCase
         Location.new(:zip => 40524),
         Location.new(:zip => 40515),
         @packages[:wii],
-                   :test => true
+        :test => @test_mode
       )
     rescue ResponseError => e
       assert_match /country\s?code/i, e.message
@@ -45,7 +46,7 @@ class FedExTest < Test::Unit::TestCase
                  @locations[:bare_beverly_hills],
                  @locations[:bare_ottawa],
                  @packages.values_at(:wii),
-                   :test => true
+                   :test => @test_mode
                )
 
     assert response.rates.size > 0
@@ -57,7 +58,7 @@ class FedExTest < Test::Unit::TestCase
                    @locations[:bare_beverly_hills],
                    Location.new(:country => 'CA'),
                    @packages.values_at(:wii),
-                   :test => true
+                   :test => @test_mode
                  )
     rescue ResponseError => e
       assert_match /postal code/i, e.message
@@ -71,7 +72,7 @@ class FedExTest < Test::Unit::TestCase
                    @locations[:bare_beverly_hills],
                    Location.new(:country => 'JP', :zip => '108-8361'),
                    @packages.values_at(:wii),
-                   :test => true
+                   :test => @test_mode
                  )
     rescue ResponseError => e
       assert_match /postal code/i, e.message
@@ -86,7 +87,7 @@ class FedExTest < Test::Unit::TestCase
                    @locations[:ottawa],
                    @locations[:beverly_hills],
                    @packages.values_at(:book, :wii),
-                   :test => true
+                   :test => @test_mode
                  )
       assert !response.rates.blank?
       response.rates.each do |rate|
@@ -103,7 +104,7 @@ class FedExTest < Test::Unit::TestCase
                    @locations[:ottawa],
                    @locations[:london],
                    @packages.values_at(:book, :wii),
-                   :test => true
+                   :test => @test_mode
                  )
       assert !response.rates.blank?
       response.rates.each do |rate|
@@ -120,7 +121,7 @@ class FedExTest < Test::Unit::TestCase
                    @locations[:beverly_hills],
                    @locations[:london],
                    @packages.values_at(:book, :wii),
-                   :test => true
+                   :test => @test_mode
                  )
       assert !response.rates.blank?
       response.rates.each do |rate|
@@ -132,7 +133,7 @@ class FedExTest < Test::Unit::TestCase
 
   def test_tracking
     assert_nothing_raised do
-      @carrier.find_tracking_info('077973360403984', :test => true)
+      @carrier.find_tracking_info('077973360403984', :test => @test_mode)
     end
   end
 
