@@ -4,10 +4,14 @@ class USPSTest < Test::Unit::TestCase
   def setup
     @packages  = TestFixtures.packages
     @locations = TestFixtures.locations
-    @carrier   = USPS.new(:login => 'login')
-    @international_rate_responses = {
-      :vanilla => xml_fixture('usps/beverly_hills_to_ottawa_book_rate_response')
-    }
+    @carrier   = USPS.new(:login => '12345')
+    @fixtures = {
+      :rate_request => {
+        :domestic => xml_fixture('usps/beverly_hills_to_real_home_rate_request')
+      },
+      :rate_response => {
+        :domestic => xml_fixture('usps/beverly_hills_to_real_home_rate_response'),
+        :international => xml_fixture('usps/beverly_hills_to_ottawa_book_rate_response')}}
   end
 
   def test_initialize_options_requirements
@@ -15,47 +19,53 @@ class USPSTest < Test::Unit::TestCase
     assert_nothing_raised ArgumentError do USPS.new(:login => '999999999') end
   end
 
-  # TODO: test_parse_domestic_rate_response
-  # TODO: test_build_us_rate_request
-  # TODO: test_build_world_rate_request
-  
-  def test_initialize_options_requirements
-    assert_raises ArgumentError do USPS.new end
-    assert_nothing_raised { USPS.new(:login => 'blah')}
+  def test_domestic_building_request_and_parse_response
+    @carrier.expects(:commit).returns(@fixtures[:rate_response][:domestic])
+
+    response = @carrier.find_rates(
+      @locations[:beverly_hills],
+      @locations[:real_home_as_residential],
+      @packages[:small_half_pound],
+      :test => true)
+
+    assert_equal @fixtures[:rate_response][:domestic], response.xml
+
+    assert_not_equal [], response.rates
+    assert_equal ["0", "0", "1", "2", "3", "4", "5", "6", "7", "13", "16", "17", "22", "23", "25", "27", "28"], response.rates.map(&:service_code).sort {|a,b| a.to_i <=> b.to_i}
+    assert_equal ["USPS Bound Printed Matter", "USPS Express Mail", "USPS Express Mail Flat-Rate Envelope", "USPS Express Mail Flat-Rate Envelope Hold For Pickup", "USPS Express Mail Flat-Rate Envelope Sunday/Holiday Guarantee", "USPS Express Mail Hold For Pickup", "USPS Express Mail Sunday/Holiday Guarantee", "USPS First-Class Mail Flat", "USPS First-Class Mail Parcel", "USPS Library Mail", "USPS Media Mail", "USPS Parcel Post", "USPS Priority Mail", "USPS Priority Mail Flat-Rate Envelope", "USPS Priority Mail Large Flat-Rate Box", "USPS Priority Mail Regular/Medium Flat-Rate Boxes", "USPS Priority Mail Small Flat-Rate Box"], response.rates.map(&:service_name).sort
+    assert_equal [225, 238, 241, 241, 288, 490, 495, 495, 495, 1035, 1395, 1750, 1750, 2120, 2120, 3000, 3370], response.rates.map(&:total_price)
   end
 
-  def test_parse_international_rate_response
-    fixture_xml = @international_rate_responses[:vanilla]
-    @carrier.expects(:commit).returns(fixture_xml)
-    
-    response = begin
-      @carrier.find_rates(
-        @locations[:beverly_hills], # imperial (U.S. origin)
-        @locations[:ottawa],
-        @packages[:book],
-        :test => true
-      )
-    rescue ResponseError => e
-      e.response
-    end
-    
-    
-    expected_xml_hash = Hash.from_xml(fixture_xml)
-    actual_xml_hash = Hash.from_xml(response.xml)
-    
-    assert_equal expected_xml_hash, actual_xml_hash
-    
+  def test_international_building_request_and_parse_response
+    @carrier.expects(:commit).returns(@fixtures[:rate_response][:international])
+
+    response = @carrier.find_rates(
+      @locations[:beverly_hills],
+      @locations[:ottawa],
+      @packages[:book],
+      :test => true)
+
+    assert_equal @fixtures[:rate_response][:international], response.xml
+
     assert_not_equal [],response.rates
     assert_equal response.rates.sort_by(&:price), response.rates
-    assert_equal ["1", "2", "3", "4", "6", "7", "9"], response.rates.map(&:service_code).sort
-    
-    ordered_service_names = ["USPS Express Mail International (EMS)", "USPS First-Class Mail International", "USPS Global Express Guaranteed", "USPS Global Express Guaranteed Non-Document Non-Rectangular", "USPS Global Express Guaranteed Non-Document Rectangular", "USPS Priority Mail International", "USPS Priority Mail International Flat Rate Box"]
-    assert_equal ordered_service_names, response.rates.map(&:service_name).sort
-    
-    
+    assert_equal ["1", "2", "3", "4", "6", "7", "9"], response.rates.map(&:service_code).sort {|a,b| a.to_i <=> b.to_i}
+    assert_equal ["USPS Express Mail International (EMS)", "USPS First-Class Mail International", "USPS Global Express Guaranteed", "USPS Global Express Guaranteed Non-Document Non-Rectangular", "USPS Global Express Guaranteed Non-Document Rectangular", "USPS Priority Mail International", "USPS Priority Mail International Flat Rate Box"], response.rates.map(&:service_name).sort
     assert_equal [376, 1600, 2300, 2325, 4100, 4100, 4100], response.rates.map(&:total_price)
   end
-  
+
+  def test_size_code_for
+    assert_equal 'REGULAR', USPS.size_code_for(Package.new(1, [80,1,1], :units => :imperial))
+    assert_equal 'LARGE', USPS.size_code_for(Package.new(1, [81,1,1], :units => :imperial))
+    assert_equal 'OVERSIZE', USPS.size_code_for(Package.new(1, [105,1,1], :units => :imperial))
+  end
+
+  def test_maximum_weight
+    assert Package.new(70 * 16, [5,5,5], :units => :imperial).mass == @carrier.maximum_weight
+    assert Package.new((70 * 16) + 0.01, [5,5,5], :units => :imperial).mass > @carrier.maximum_weight
+    assert Package.new((70 * 16) - 0.01, [5,5,5], :units => :imperial).mass < @carrier.maximum_weight
+  end
+
   def test_parse_max_dimension_sentences
     limits = {
       "Max. length 46\", width 35\", height 46\" and max. length plus girth 108\"" =>
@@ -117,7 +127,7 @@ class USPSTest < Test::Unit::TestCase
   end
   
   def test_xml_logging_to_file
-    mock_response = @international_rate_responses[:vanilla]
+    mock_response = @fixtures[:rate_response][:international]
     @carrier.expects(:commit).times(2).returns(mock_response)
     @carrier.find_rates(
       @locations[:beverly_hills],
@@ -131,12 +141,6 @@ class USPSTest < Test::Unit::TestCase
       @packages[:book],
       :test => true
     )
-  end
-  
-  def test_maximum_weight
-    assert Package.new(70 * 16, [5,5,5], :units => :imperial).mass == @carrier.maximum_weight
-    assert Package.new((70 * 16) + 0.01, [5,5,5], :units => :imperial).mass > @carrier.maximum_weight
-    assert Package.new((70 * 16) - 0.01, [5,5,5], :units => :imperial).mass < @carrier.maximum_weight
   end
   
   private
@@ -156,18 +160,5 @@ class USPSTest < Test::Unit::TestCase
           "Max. length 24\", Max. length, height, depth combined 36\"")
     end.to_xml_element
   end
-  
-  def build_service_hash(options = {})
-    {"Pounds"=> options[:pounds] || "0",                                                                         # 8
-         "SvcCommitments"=> options[:svc_commitments] || "Varies",                                                            
-         "Country"=> options[:country] || "CANADA",
-         "ID"=> options[:id] || "3",
-         "MaxWeight"=> options[:max_weight] || "64",
-         "SvcDescription"=> options[:name] || "First-Class Mail International",
-         "MailType"=> options[:mail_type] || "Package",
-         "Postage"=> options[:postage] || "3.76",
-         "Ounces"=> options[:ounces] || "9",
-         "MaxDimensions"=> options[:max_dimensions] || 
-          "Max. length 24\", Max. length, height, depth combined 36\""}
-  end
+
 end

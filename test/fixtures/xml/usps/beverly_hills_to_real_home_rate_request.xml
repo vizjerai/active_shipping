@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<RateV3Request USERID="12345">
+	<Package ID="0">
+		<Service>ALL</Service>
+		<ZipOrigination>90210</ZipOrigination>
+		<ZipDestination>33615</ZipDestination>
+		<Pounds>0</Pounds>
+		<Ounces>8.0</Ounces>
+		<Size>REGULAR</Size>
+		<Width>1</Width>
+		<Length>1</Length>
+		<Height>1</Height>
+		<Girth>4</Girth>
+		<Machinable>FALSE</Machinable>
+	</Package>
+</RateV3Request>
