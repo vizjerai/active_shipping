@@ -182,8 +182,8 @@ module ActiveMerchant
       end
       
       def world_rates(origin, destination, packages, options={})
-        request = build_world_rate_request(packages, destination.country)
-        response = commit(:world_rates,request,false)
+        request = build_world_rate_request(packages, destination.country, options)
+        response = commit(:world_rates, URI.encode(save_request(request)), false)
          # never use test mode; rate requests just won't work on test servers
         parse_rate_response(origin, destination, packages, response, options)
       end
@@ -247,23 +247,24 @@ module ActiveMerchant
       # 
       # package.options[:mail_type] -- one of [:package, :postcard, :matter_for_the_blind, :envelope].
       #                                 Defaults to :package.
-      def build_world_rate_request(packages, destination_country)
+      def build_world_rate_request(packages, destination_country, options = {})
         country = COUNTRY_NAME_CONVERSIONS[destination_country.code(:alpha2).first.value] || destination_country.name
-        request = XmlNode.new('IntlRateRequest', :USERID => @options[:login]) do |rate_request|
-          packages.each_index do |id|
-            p = packages[id]
-            rate_request << XmlNode.new('Package', :ID => id.to_s) do |package|
-              package << XmlNode.new('Pounds', 0)
-              package << XmlNode.new('Ounces', [p.ounces,1].max.ceil) #takes an integer for some reason, must be rounded UP
-              package << XmlNode.new('MailType', MAIL_TYPES[p.options[:mail_type]] || 'Package')
-              package << XmlNode.new('ValueOfContents', p.value / 100.0) if p.value && p.currency == 'USD'
-              package << XmlNode.new('Country') do |node|
-                node.cdata = country
-              end
+        xml_request = Nokogiri::XML::Builder.new do
+          IntlRateRequest(:USERID => options[:login]) {
+            packages.each_with_index do |p, id|
+              Package(:ID => id) {
+                Pounds '0'
+                Ounces ([p.ounces,1].max.ceil) #takes an integer for some reason, must be rounded UP
+                MailType MAIL_TYPES[p.options[:mail_type]] || 'Package'
+                if p.value && p.currency == 'USD'
+                  ValueOfContents (p.value / 100.0)
+                end
+                Country country
+              }
             end
-          end
+          }
         end
-        URI.encode(save_request(request.to_s))
+        xml_request.to_xml
       end
       
       def parse_rate_response(origin, destination, packages, response, options={})
