@@ -154,12 +154,13 @@ module ActiveMerchant
         
         
         # domestic or international?
-        
+        rates = nil
         response = if ['US',nil].include?(destination.country_code(:alpha2))
-          us_rates(origin, destination, packages, options)
+          rates = us_rates(origin, destination, packages, options)
         else
-          world_rates(origin, destination, packages, options)
+          rates = world_rates(origin, destination, packages, options)
         end
+        rates
       end
       
       def valid_credentials?
@@ -175,14 +176,16 @@ module ActiveMerchant
       
       def us_rates(origin, destination, packages, options={})
         request = build_us_rate_request(packages, origin.zip, destination.zip, options)
+        response = commit(:us_rates, URI.encode(save_request(request)), false)
          # never use test mode; rate requests just won't work on test servers
-        parse_rate_response origin, destination, packages, commit(:us_rates,request,false), options
+        parse_rate_response(origin, destination, packages, response, options)
       end
       
       def world_rates(origin, destination, packages, options={})
         request = build_world_rate_request(packages, destination.country)
+        response = commit(:world_rates,request,false)
          # never use test mode; rate requests just won't work on test servers
-        parse_rate_response origin, destination, packages, commit(:world_rates,request,false), options
+        parse_rate_response(origin, destination, packages, response, options)
       end
       
       # Once the address verification API is implemented, remove this and have valid_credentials? build the request using that instead.
@@ -204,34 +207,37 @@ module ActiveMerchant
       #                                  "machinability" entirely.
       def build_us_rate_request(packages, origin_zip, destination_zip, options={})
         packages = Array(packages)
-        request = XmlNode.new('RateV3Request', :USERID => @options[:login]) do |rate_request|
-          packages.each_with_index do |p,id|
-            rate_request << XmlNode.new('Package', :ID => id.to_s) do |package|
-              package << XmlNode.new('Service', US_SERVICES[options[:service] || :all])
-              package << XmlNode.new('ZipOrigination', strip_zip(origin_zip))
-              package << XmlNode.new('ZipDestination', strip_zip(destination_zip))
-              package << XmlNode.new('Pounds', 0)
-              package << XmlNode.new('Ounces', "%0.1f" % [p.ounces,1].max)
-              if p.options[:container] and [nil,:all,:express,:priority].include? p.service
-                package << XmlNode.new('Container', CONTAINERS[p.options[:container]])
-              end
-              package << XmlNode.new('Size', USPS.size_code_for(p))
-              package << XmlNode.new('Width', p.inches(:width))
-              package << XmlNode.new('Length', p.inches(:length))
-              package << XmlNode.new('Height', p.inches(:height))
-              package << XmlNode.new('Girth', p.inches(:girth))
-              is_machinable = if p.options.has_key?(:machinable)
-                p.options[:machinable] ? true : false
-              else
-                USPS.package_machinable?(p)
-              end
-              package << XmlNode.new('Machinable', is_machinable.to_s.upcase)
+
+        xml_request = Nokogiri::XML::Builder.new do
+          RateV3Request(:USERID => options[:login]) {
+            packages.each_with_index do |p, id|
+              Package(:ID => id) {
+                Service US_SERVICES[options[:service] || :all]
+                ZipOrigination strip_zip(origin_zip)
+                ZipDestination strip_zip(destination_zip)
+                Pounds '0'
+                Ounces "%0.1f" % [p.ounces, 1].max
+                if p.options[:container] && [nil,:all,:express,:priority].include?(p.service)
+                  Container CONTAINERS[p.options[:container]]
+                end
+                Size USPS.size_code_for(p)
+                Width p.inches(:width)
+                Length p.inches(:length)
+                Height p.inches(:height)
+                Girth p.inches(:girth)
+                is_machinable = if p.options.has_key?(:machinable)
+                  p.options[:machinable] ? true : false
+                else
+                  USPS.package_machinable?(p)
+                end
+                Machinable is_machinable.to_s.upcase
+              }
             end
-          end
+          }
         end
-        URI.encode(save_request(request.to_s))
+        xml_request.to_xml
       end
-      
+
       # important difference with international rate requests:
       # * services are not given in the request
       # * package sizes are not given in the request
@@ -299,8 +305,10 @@ module ActiveMerchant
         rate_estimates = rate_estimates.sort_by(&:total_price)
         
         RateResponse.new(success, message, Hash.from_xml(response), :rates => rate_estimates, :xml => response, :request => last_request)
+
       end
-      
+
+      # @deprecated
       def rates_from_response_node(response_node, packages)
         rate_hash = {}
         return false unless (root_node = response_node.elements['/IntlRateResponse | /RateV3Response'])
@@ -330,7 +338,8 @@ module ActiveMerchant
         end
         rate_hash
       end
-      
+
+      # @deprecated
       def package_valid_for_service(package, service_node)
         return true if service_node.elements['MaxWeight'].nil?
         max_weight = service_node.get_text('MaxWeight').to_s.to_f
@@ -386,7 +395,8 @@ module ActiveMerchant
           return package_valid_for_max_dimensions(package, max_dimensions)
         end
       end
-      
+
+      # @deprecated
       def package_valid_for_max_dimensions(package,dimensions)
         valid = ((not ([:length,:width,:height].map {|dim| dimensions[dim].nil? || dimensions[dim].to_f >= package.inches(dim).to_f}.include?(false))) and
                 (dimensions[:weight].nil? || dimensions[:weight] >= package.pounds) and
@@ -399,7 +409,7 @@ module ActiveMerchant
 
         return valid
       end
-      
+
       def commit(action, request, test = false)
         ssl_get(request_url(action, request, test))
       end
