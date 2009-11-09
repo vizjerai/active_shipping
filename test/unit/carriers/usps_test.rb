@@ -12,7 +12,7 @@ class USPSTest < Test::Unit::TestCase
       },
       :rate_response => {
         :domestic => xml_fixture('usps/new_york_to_beverly_hills_rate_response'),
-        :international => xml_fixture('usps/beverly_hills_to_attawa_rate_response')}}
+        :international => xml_fixture('usps/beverly_hills_to_ottawa_rate_response')}}
   end
 
   def test_initialize_options_requirements
