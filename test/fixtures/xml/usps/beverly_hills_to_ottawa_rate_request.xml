@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<IntlRateRequest USERID="12345">
+	<Package ID="0">
+		<Pounds>0</Pounds>
+		<Ounces>9</Ounces>
+		<MailType>Package</MailType>
+		<Country>Canada</Country>
+	</Package>
+	<Package ID="1">
+		<Pounds>0</Pounds>
+		<Ounces>120</Ounces>
+		<MailType>Package</MailType>
+		<Country>Canada</Country>
+	</Package>
+</IntlRateRequest>

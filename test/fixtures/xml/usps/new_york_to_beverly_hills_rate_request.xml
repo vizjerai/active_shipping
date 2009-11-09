@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<RateV3Request USERID="12345">
+	<Package ID="0">
+		<Service>ALL</Service>
+		<ZipOrigination>10017</ZipOrigination>
+		<ZipDestination>90210</ZipDestination>
+		<Pounds>0</Pounds>
+		<Ounces>8.8</Ounces>
+		<Size>REGULAR</Size>
+		<Width>5.51181102362205</Width>
+		<Length>7.48031496062992</Length>
+		<Height>0.78740157480315</Height>
+		<Girth>12.5984251968504</Girth>
+		<Machinable>TRUE</Machinable>
+	</Package>
+	<Package ID="1">
+		<Service>ALL</Service>
+		<ZipOrigination>10017</ZipOrigination>
+		<ZipDestination>90210</ZipDestination>
+		<Pounds>0</Pounds>
+		<Ounces>120.0</Ounces>
+		<Size>REGULAR</Size>
+		<Width>10</Width>
+		<Length>15</Length>
+		<Height>4.5</Height>
+		<Girth>29.0</Girth>
+		<Machinable>TRUE</Machinable>
+	</Package>
+</RateV3Request>
