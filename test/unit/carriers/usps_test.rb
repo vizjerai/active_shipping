@@ -67,7 +67,7 @@ class USPSTest < Test::Unit::TestCase
     assert Package.new((70 * 16) + 0.01, [5,5,5], :units => :imperial).mass > @carrier.maximum_weight
     assert Package.new((70 * 16) - 0.01, [5,5,5], :units => :imperial).mass < @carrier.maximum_weight
   end
-
+=begin
   def test_parse_max_dimension_sentences
     limits = {
       "Max. length 46\", width 35\", height 46\" and max. length plus girth 108\"" =>
@@ -107,7 +107,7 @@ class USPSTest < Test::Unit::TestCase
     @carrier.send(:package_valid_for_service, p, service_node)
     
   end
-  
+=end
   def test_package_valid_for_max_dimensions
     p = Package.new(70 * 16, [10,10,10], :units => :imperial)
     limits = {:weight => 70.0, :length => 10.0, :width => 10.0, :height => 10.0, :length_plus_girth => 50.0, :length_plus_width_plus_height => 30.0}
@@ -117,7 +117,56 @@ class USPSTest < Test::Unit::TestCase
       dimensions = {key => (limits[key] - 1)}
       assert_equal false, @carrier.send(:package_valid_for_max_dimensions, p, dimensions)
     end
+  end
+
+  def test_parse_dimensions
+    dimensions = @carrier.send(:parse_dimensions, 'Priority Mail International Regular/Medium Flat-Rate Boxes', '', 20)
+    assert_equal 20, dimensions[0][:weight]
+    assert_equal 11.0, dimensions[0][:length]
+    assert_equal 8.5, dimensions[0][:width]
+    assert_equal 5.5, dimensions[0][:height]
     
+    assert_equal 20, dimensions[1][:weight]
+    assert_equal 13.625, dimensions[1][:length]
+    assert_equal 11.875, dimensions[1][:width]
+    assert_equal 3.375, dimensions[1][:height]
+
+    dimensions = [
+      {:method => 'Priority Mail International Small Flat-Rate Box', :text => '',
+        :weight => 4, :length => 8.625, :width => 5.375, :height => 1.625},
+      {:method => 'Priority Mail International Large Flat-Rate Box', :text => '',
+        :weight => 20, :length => 12.0, :width => 12.0, :height => 5.5},
+      {:method => 'Express Mail International (EMS) Flat-Rate Envelope', :text => '',
+        :weight => 70, :length => 12.5, :width => 9.5, :height => 0.75},
+      {:method => 'First Class Mail International Large Envelope', :text => '',
+        :weight => 1, :length => 15.0, :width => 12.0, :height => 0.75},
+      {:method => '', :text => 'Max. length 46", width 35", height 46" and max. length plus girth 108"',
+        :weight => 35, :length => 46.0, :width => 46.0, :height => 35.0, :length_plus_girth => 108.0},
+      {:method => '', :text => 'Maximum length and girth combined 108"',
+        :weight => 45, :length_plus_girth => 108.0},
+      {:method => '', :text => 'Maximum length and girth combined 108"',
+        :weight => 10, :length_plus_girth => 108.0},
+      {:method => '', :text => 'Max.length 42", max. length plus girth 79"',
+        :weight => 55, :length => 42.0, :length_plus_girth => 79.0},
+      {:method => '', :text => 'Max. length 24", Max. length, height, depth combined 36"',
+        :weight => 5, :length => 24.0, :length_plus_width_plus_height => 36.0},
+      {:method => '', :text => 'Max. length 24", max length, height and depth (thickness) combined 36"',
+        :weight => 11, :length => 24.0, :length_plus_width_plus_height => 36.0}]
+
+    dimensions.each do |dimension|
+      results = @carrier.send(:parse_dimensions, dimension[:method], dimension[:text], dimension[:weight])
+      assert_equal 1, results.length
+      result = results.first
+      assert_equal dimension[:weight], result[:weight]
+      assert_equal dimension[:length], result[:length]
+      assert_equal dimension[:width], result[:width]
+      assert_equal dimension[:height], result[:height]
+      assert_equal dimension[:length_plus_girth], result[:length_plus_girth]
+      assert_equal dimension[:length_plus_width_plus_height], result[:length_plus_width_plus_height]
+    end
+
+  # Max. length 15", height 12 or more than 3/4" thick
+
   end
   
   def test_strip_9_digit_zip_codes

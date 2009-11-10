@@ -268,137 +268,145 @@ module ActiveMerchant
       end
       
       def parse_rate_response(origin, destination, packages, response, options={})
-        success = true
+
+        rate_estimates = []
         message = ''
-        rate_hash = {}
-        
-        xml = REXML::Document.new(response)
-        
-        if error = xml.elements['/Error']
-          success = false
-          message = error.elements['Description'].text
-        else
-          xml.elements.each('/*/Package') do |package|
-            if package.elements['Error']
-              success = false
-              message = package.get_text('Error/Description').to_s
-              break
-            end
-          end
-          
-          if success
-            rate_hash = rates_from_response_node(xml, packages)
-            unless rate_hash
-              success = false
-              message = "Unknown root node in XML response: '#{root_node_name}'"
-            end
-          end
-          
-        end
-        
-        rate_estimates = rate_hash.keys.map do |service_name|
-          RateEstimate.new(origin,destination,@@name,"USPS #{service_name}",
-                                    :package_rates => rate_hash[service_name][:package_rates],
-                                    :service_code => rate_hash[service_name][:service_code],
-                                    :currency => 'USD')
-        end
-        rate_estimates.reject! {|e| e.package_count != packages.length}
-        rate_estimates = rate_estimates.sort_by(&:total_price)
-        
-        RateResponse.new(success, message, Hash.from_xml(response), :rates => rate_estimates, :xml => response, :request => last_request)
 
+        xml = Nokogiri::XML::parse(response)
+
+        case xml.root.name
+          when 'Error' then
+            message = xml.root.search('Description').text
+          when 'RateV3Response' then
+            rate_estimates = domestic_rates(:xml => xml, :origin => origin, :destination => destination, :packages => packages)
+          when 'IntlRateResponse' then
+            rate_estimates = international_rates(:xml => xml, :origin => origin, :destination => destination, :packages => packages)
+          else
+            message = "Unknown root node in XML response: '#{xml.root.name}'"
+        end
+
+        success = !rate_estimates.blank?
+
+        RateResponse.new(success, message, {}, :rates => rate_estimates, :xml => response, :request => last_request)
       end
 
-      # @deprecated
-      def rates_from_response_node(response_node, packages)
-        rate_hash = {}
-        return false unless (root_node = response_node.elements['/IntlRateResponse | /RateV3Response'])
-        domestic = (root_node.name == 'RateV3Response')
-        
-        domestic_elements = ['Postage', 'CLASSID', 'MailService', 'Rate']
-        international_elements = ['Service', 'ID', 'SvcDescription', 'Postage']
-        service_node, service_code_node, service_name_node, rate_node = domestic ? domestic_elements : international_elements
-        
-        root_node.each_element('Package') do |package_node|
-          package_index = package_node.attributes['ID'].to_i
-          
-          package_node.each_element(service_node) do |service_response_node|
-            service_name = service_response_node.get_text(service_name_node).to_s
-            
-            # aggregate specific package rates into a service-centric RateEstimate
-            # first package with a given service name will initialize these;
-            # later packages with same service will add to them
-            this_service = rate_hash[service_name] ||= {}
-            this_service[:service_code] ||= service_response_node.attributes[service_code_node]
-            package_rates = this_service[:package_rates] ||= []
-            this_package_rate = {:package => (this_package = packages[package_index]),
-                                 :rate => Package.cents_from(service_response_node.get_text(rate_node).to_s.to_f)}
-            
-            package_rates << this_package_rate if package_valid_for_service(this_package,service_response_node)
-          end
-        end
-        rate_hash
-      end
+      def domestic_rates(opts = {})
+        rate_estimates = []
 
-      # @deprecated
-      def package_valid_for_service(package, service_node)
-        return true if service_node.elements['MaxWeight'].nil?
-        max_weight = service_node.get_text('MaxWeight').to_s.to_f
-        name = service_node.get_text('SvcDescription | MailService').to_s.downcase
-        
-        if name =~ /flat.rate.box/ #domestic or international flat rate box
-          # flat rate dimensions from http://www.usps.com/shipping/flatrate.htm
-          return (package_valid_for_max_dimensions(package,
-                      :weight => max_weight, #domestic apparently has no weight restriction
-                      :length => 11.0,
-                      :width => 8.5,
-                      :height => 5.5) or
-                 package_valid_for_max_dimensions(package,
-                      :weight => max_weight,
-                      :length => 13.625,
-                      :width => 11.875,
-                      :height => 3.375))
-        elsif name =~ /flat.rate.envelope/
-          return package_valid_for_max_dimensions(package,
-                      :weight => max_weight,
-                      :length => 12.5,
-                      :width => 9.5,
-                      :height => 0.75)
-        elsif service_node.elements['MailService'] # domestic non-flat rates
-          return true
-        else #international non-flat rates
-          # Some sample english that this is required to parse:
-          #
-          # 'Max. length 46", width 35", height 46" and max. length plus girth 108"'
-          # 'Max. length 24", Max. length, height, depth combined 36"'
-          # 
-          sentence = CGI.unescapeHTML(service_node.get_text('MaxDimensions').to_s)
-          tokens = sentence.downcase.split(/[^\d]*"/).reject {|t| t.empty?}
-          max_dimensions = {:weight => max_weight}
-          single_axis_values = []
-          tokens.each do |token|
-            axis_sum = [/length/,/width/,/height/,/depth/].sum {|regex| (token =~ regex) ? 1 : 0}
-            unless axis_sum == 0
-              value = token[/\d+$/].to_f 
-              if axis_sum == 3
-                max_dimensions[:length_plus_width_plus_height] = value
-              elsif token =~ /girth/ and axis_sum == 1
-                max_dimensions[:length_plus_girth] = value
-              else
-                single_axis_values << value
-              end
+        opts[:xml].root.search('Package').each do |package|
+          package_id = package.attribute('ID').value.to_i
+          package.search('Postage').each do |method|
+            method_name = service_name(method.search('MailService').text)
+            rate = rate_estimates.detect{|rate| rate.service_name.eql?(method_name)}
+            if rate.blank?
+              rate = RateEstimate.new(opts[:origin], opts[:destination], @@name, method_name,
+                :package_rates => [],
+                :service_code => method.attribute('CLASSID').value,
+                :currency => 'USD')
+              rate.add(opts[:packages][package_id], method.search('Rate').text)
+              rate_estimates << rate
+            else
+              rate.add(opts[:packages][package_id], method.search('Rate').text)
             end
           end
-          single_axis_values.sort!.reverse!
-          [:length, :width, :height].each_with_index do |axis,i|
-            max_dimensions[axis] = single_axis_values[i] if single_axis_values[i]
-          end
-          return package_valid_for_max_dimensions(package, max_dimensions)
         end
+        rate_estimates.reject! {|e| e.package_count != opts[:packages].length}
+        rate_estimates.sort_by(&:total_price)
       end
 
-      # @deprecated
-      def package_valid_for_max_dimensions(package,dimensions)
+      def international_rates(opts = {})
+        rate_estimates = []
+
+        opts[:xml].root.search('Package').each do |package|
+          package_id = package.attribute('ID').value.to_i
+          package.search('Service').each do |method|
+            next if !valid_package_for_service?(opts[:packages][package_id], method)
+
+            method_name = service_name(method.search('SvcDescription').text)
+            rate = rate_estimates.detect{|rate| rate.service_name.eql?(method_name)}
+            if rate.blank?
+              rate = RateEstimate.new(opts[:origin], opts[:destination], @@name, method_name,
+                :package_rates => [],
+                :service_code => method.attribute('ID').value,
+                :currency => 'USD')
+              rate.add(opts[:packages][package_id], method.search('Postage').text)
+              rate_estimates << rate
+            else
+              rate.add(opts[:packages][package_id], method.search('Postage').text)
+            end
+          end
+        end
+        rate_estimates.reject! {|e| e.package_count != opts[:packages].length}
+        rate_estimates.sort_by(&:total_price)
+      end
+
+      # Note: only filters International packages
+      def valid_package_for_service?(package, method_node)
+        max_weight = method_node.search('MaxWeight').text.to_f
+        return true if max_weight <= 0.0
+        name = method_node.search('SvcDescription').text
+        dimension_text = method_node.search('MaxDimensions').text
+      
+        parse_dimensions(name, dimension_text, max_weight).each do |dimension|
+          return true if package_valid_for_max_dimensions(package, dimension)
+        end
+        false
+      end
+
+      def parse_dimensions(method_name, dimension_text, max_weight)
+        method_name = method_name.downcase
+
+        # flat rate dimensions from
+        #  * http://www.usps.com/prices/first-class-mail-prices.htm
+        #  * http://www.usps.com/prices/express-mail-international-prices.htm
+        #  * http://www.usps.com/prices/priority-mail-international-prices.htm
+        if method_name =~ /small.flat.rate.box/
+          return [{:weight => max_weight, :length => 8.625, :width => 5.375, :height => 1.625}]
+        end
+        if method_name =~ /medium.flat.rate.box/
+          return [{:weight => max_weight, :length => 11.0, :width => 8.5, :height => 5.5},
+            {:weight => max_weight, :length => 13.625, :width => 11.875, :height => 3.375}]
+        end
+        if method_name =~ /flat.rate.box/
+          return [{:weight => max_weight, :length => 12.0, :width => 12.0, :height => 5.5}]
+        end
+        if method_name =~ /large.envelope/
+          return [{:weight => max_weight, :length => 15.0, :width => 12.0, :height => 0.75}]
+        end
+        if method_name =~ /flat.rate.envelope/
+          return [{:weight => max_weight, :length => 12.5, :width => 9.5, :height => 0.75}]
+        end
+      
+        # Some sample english that this is required to parse:
+        #
+        # 'Max. length 46", width 35", height 46" and max. length plus girth 108"'
+        # 'Max. length 24", Max. length, height, depth combined 36"'
+        #
+        sentence = CGI.unescapeHTML(dimension_text)
+        tokens = sentence.downcase.split(/[^\d]*"/).reject {|t| t.empty?}
+        max_dimensions = {:weight => max_weight}
+        single_axis_values = []
+        tokens.each do |token|
+          axis_sum = [/length/,/width/,/height/,/depth/].sum {|regex| (token =~ regex) ? 1 : 0}
+          unless axis_sum == 0
+            value = token[/\d+$/].to_f 
+            if axis_sum == 3
+              max_dimensions[:length_plus_width_plus_height] = value
+            elsif token =~ /girth/ and axis_sum == 1
+              max_dimensions[:length_plus_girth] = value
+            else
+              single_axis_values << value
+            end
+          end
+        end
+        single_axis_values.sort!.reverse!
+        [:length, :width, :height].each_with_index do |axis,i|
+          max_dimensions[axis] = single_axis_values[i] if single_axis_values[i]
+        end
+        [max_dimensions]
+      end
+
+      def package_valid_for_max_dimensions(package, dimensions)
         valid = ((not ([:length,:width,:height].map {|dim| dimensions[dim].nil? || dimensions[dim].to_f >= package.inches(dim).to_f}.include?(false))) and
                 (dimensions[:weight].nil? || dimensions[:weight] >= package.pounds) and
                 (dimensions[:length_plus_girth].nil? or
@@ -425,7 +433,13 @@ module ActiveMerchant
       def strip_zip(zip)
         zip.to_s.scan(/\d{5}/).first || zip
       end
-      
+
+      private
+
+      def service_name(name)
+        "#{@@name} #{name}"
+      end
+
     end
   end
 end
