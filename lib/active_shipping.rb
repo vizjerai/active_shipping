@@ -24,11 +24,11 @@
 $:.unshift File.dirname(__FILE__)
 
 require 'rubygems'
+require 'nokogiri'
 require 'active_support'
 
 require 'vendor/xml_node/lib/xml_node'
 require 'vendor/quantified/lib/quantified'
-require 'vendor/tenderlove-nokogiri/lib/nokogiri'
 require 'quantified/mass'
 require 'quantified/length'
 
