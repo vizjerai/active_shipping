@@ -3,7 +3,7 @@ require 'cgi'
 
 module ActiveMerchant
   module Shipping
-    
+
     # After getting an API login from USPS (looks like '123YOURNAME456'),
     # run the following test:
     # 
@@ -14,20 +14,20 @@ module ActiveMerchant
     # to do before they put your API key in production mode.
     class USPS < Carrier
       self.retry_safe = true
-      
+
       cattr_reader :name
       @@name = "USPS"
-      
+
       LIVE_DOMAIN = 'production.shippingapis.com'
       LIVE_RESOURCE = 'ShippingAPI.dll'
-      
+
       TEST_DOMAINS = { #indexed by security; e.g. TEST_DOMAINS[USE_SSL[:rates]]
         true => 'secure.shippingapis.com',
         false => 'testing.shippingapis.com'
       }
-      
+
       TEST_RESOURCE = 'ShippingAPITest.dll'
-      
+
       API_CODES = {
         :us_rates => 'RateV3',
         :world_rates => 'IntlRate',
@@ -74,7 +74,7 @@ module ActiveMerchant
         :library => 'LIBRARY',
         :all => 'ALL'
       }
-      
+
       # TODO: get rates for "U.S. possessions and Trust Territories" like Guam, etc. via domestic rates API: http://www.usps.com/ncsc/lookups/abbr_state.txt
       # TODO: figure out how USPS likes to say "Ivory Coast"
       #
@@ -122,7 +122,7 @@ module ActiveMerchant
           return 'OVERSIZE'
         end
       end
-      
+
       # from info at http://www.usps.com/businessmail101/mailcharacteristics/parcels.htm
       # 
       # package.options[:books] -- 25 lb. limit instead of 35 for books or other printed matter.
@@ -138,21 +138,20 @@ module ActiveMerchant
                             package.pounds <= (package.options[:books] ? 25.0 : 35.0)
         at_least_minimum && at_most_maximum
       end
-      
+
       def requirements
         [:login]
       end
-      
+
       def find_rates(origin, destination, packages, options = {})
         options = @options.merge(options)
         
         origin = Location.from(origin)
         destination = Location.from(destination)
         packages = Array(packages)
-        
+
         #raise ArgumentError.new("USPS packages must originate in the U.S.") unless ['US',nil].include?(origin.country_code(:alpha2))
-        
-        
+
         # domestic or international?
         rates = nil
         response = if ['US',nil].include?(destination.country_code(:alpha2))
@@ -162,32 +161,32 @@ module ActiveMerchant
         end
         rates
       end
-      
+
       def valid_credentials?
         # Cannot test with find_rates because USPS doesn't allow that in test mode
         test_mode? ? canned_address_verification_works? : super
       end
-      
+
       def maximum_weight
         Mass.new(70, :pounds)
       end
-      
+
       protected
-      
+
       def us_rates(origin, destination, packages, options={})
         request = build_us_rate_request(packages, origin.zip, destination.zip, options)
         response = commit(:us_rates, URI.encode(save_request(request)), false)
          # never use test mode; rate requests just won't work on test servers
         parse_rate_response(origin, destination, packages, response, options)
       end
-      
+
       def world_rates(origin, destination, packages, options={})
         request = build_world_rate_request(packages, destination.country, options)
         response = commit(:world_rates, URI.encode(save_request(request)), false)
          # never use test mode; rate requests just won't work on test servers
         parse_rate_response(origin, destination, packages, response, options)
       end
-      
+
       # Once the address verification API is implemented, remove this and have valid_credentials? build the request using that instead.
       def canned_address_verification_works?
         request = "%3CCarrierPickupAvailabilityRequest%20USERID=%22#{URI.encode(@options[:login])}%22%3E%20%0A%3CFirmName%3EABC%20Corp.%3C/FirmName%3E%20%0A%3CSuiteOrApt%3ESuite%20777%3C/SuiteOrApt%3E%20%0A%3CAddress2%3E1390%20Market%20Street%3C/Address2%3E%20%0A%3CUrbanization%3E%3C/Urbanization%3E%20%0A%3CCity%3EHouston%3C/City%3E%20%0A%3CState%3ETX%3C/State%3E%20%0A%3CZIP5%3E77058%3C/ZIP5%3E%20%0A%3CZIP4%3E1234%3C/ZIP4%3E%20%0A%3C/CarrierPickupAvailabilityRequest%3E%0A"
@@ -196,7 +195,7 @@ module ActiveMerchant
         xml.get_text('/CarrierPickupAvailabilityResponse/City').to_s == 'HOUSTON' &&
         xml.get_text('/CarrierPickupAvailabilityResponse/Address2').to_s == '1390 Market Street'
       end
-      
+
       # options[:service] --    One of [:first_class, :priority, :express, :bpm, :parcel,
       #                          :media, :library, :all]. defaults to :all.
       # options[:container] --  One of [:envelope, :box]. defaults to neither (this field has
@@ -266,9 +265,8 @@ module ActiveMerchant
         end
         xml_request.to_xml
       end
-      
-      def parse_rate_response(origin, destination, packages, response, options={})
 
+      def parse_rate_response(origin, destination, packages, response, options={})
         rate_estimates = []
         message = ''
 
@@ -286,7 +284,6 @@ module ActiveMerchant
         end
 
         success = !rate_estimates.blank?
-
         RateResponse.new(success, message, {}, :rates => rate_estimates, :xml => response, :request => last_request)
       end
 
@@ -346,7 +343,7 @@ module ActiveMerchant
         return true if max_weight <= 0.0
         name = method_node.search('SvcDescription').text
         dimension_text = method_node.search('MaxDimensions').text
-      
+
         parse_dimensions(name, dimension_text, max_weight).each do |dimension|
           return true if package_valid_for_max_dimensions(package, dimension)
         end
@@ -376,7 +373,7 @@ module ActiveMerchant
         if method_name =~ /flat.rate.envelope/
           return [{:weight => max_weight, :length => 12.5, :width => 9.5, :height => 0.75}]
         end
-      
+
         # Some sample english that this is required to parse:
         #
         # 'Max. length 46", width 35", height 46" and max. length plus girth 108"'
@@ -422,14 +419,14 @@ module ActiveMerchant
       def commit(action, request, test = false)
         ssl_get(request_url(action, request, test))
       end
-      
+
       def request_url(action, request, test)
         scheme = USE_SSL[action] ? 'https://' : 'http://'
         host = test ? TEST_DOMAINS[USE_SSL[action]] : LIVE_DOMAIN
         resource = test ? TEST_RESOURCE : LIVE_RESOURCE
         "#{scheme}#{host}/#{resource}?API=#{API_CODES[action]}&XML=#{request}"
       end
-      
+
       def strip_zip(zip)
         zip.to_s.scan(/\d{5}/).first || zip
       end
