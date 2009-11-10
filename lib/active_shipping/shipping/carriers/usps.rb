@@ -357,21 +357,18 @@ module ActiveMerchant
         #  * http://www.usps.com/prices/first-class-mail-prices.htm
         #  * http://www.usps.com/prices/express-mail-international-prices.htm
         #  * http://www.usps.com/prices/priority-mail-international-prices.htm
-        if method_name =~ /small.flat.rate.box/
-          return [{:weight => max_weight, :length => 8.625, :width => 5.375, :height => 1.625}]
-        end
-        if method_name =~ /medium.flat.rate.box/
-          return [{:weight => max_weight, :length => 11.0, :width => 8.5, :height => 5.5},
-            {:weight => max_weight, :length => 13.625, :width => 11.875, :height => 3.375}]
-        end
-        if method_name =~ /flat.rate.box/
-          return [{:weight => max_weight, :length => 12.0, :width => 12.0, :height => 5.5}]
-        end
-        if method_name =~ /large.envelope/
-          return [{:weight => max_weight, :length => 15.0, :width => 12.0, :height => 0.75}]
-        end
-        if method_name =~ /flat.rate.envelope/
-          return [{:weight => max_weight, :length => 12.5, :width => 9.5, :height => 0.75}]
+        case method_name
+          when /small.flat.rate.box/ then
+            return [{:weight => max_weight, :length => 8.625, :width => 5.375, :height => 1.625}]
+          when /medium.flat.rate.box/ then
+            return [{:weight => max_weight, :length => 11.0, :width => 8.5, :height => 5.5},
+              {:weight => max_weight, :length => 13.625, :width => 11.875, :height => 3.375}]
+          when /flat.rate.box/ then
+            return [{:weight => max_weight, :length => 12.0, :width => 12.0, :height => 5.5}]
+          when /large.envelope/ then
+            return [{:weight => max_weight, :length => 15.0, :width => 12.0, :height => 0.75}]
+          when /flat.rate.envelope/ then
+            return [{:weight => max_weight, :length => 12.5, :width => 9.5, :height => 0.75}]
         end
 
         # Some sample english that this is required to parse:
