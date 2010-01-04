@@ -5,7 +5,9 @@ module ActiveMerchant
       self.mode = :production
       
       def self.carrier(name)
-        ActiveMerchant::Shipping::Carriers.all.find {|c| c.name.downcase == name}
+        result = ActiveMerchant::Shipping::Carriers.all.find {|c| c.name.casecmp(name.to_s) == 0}
+        raise NameError if result.nil?
+        result
       end
     end
   end
