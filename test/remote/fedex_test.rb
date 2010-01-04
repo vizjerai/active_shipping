@@ -7,7 +7,6 @@ class FedExTest < Test::Unit::TestCase
     @locations = TestFixtures.locations
     @carrier   = FedEx.new(fixtures(:fedex))
     @carrier.test_mode = true if @carrier.test_mode.nil?
-    FedEx.logger = Logger.new('/Users/james/.active_merchant/fedex.log')
   end
 
   def test_valid_credentials
