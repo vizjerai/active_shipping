@@ -5,14 +5,15 @@ class FedExTest < Test::Unit::TestCase
   def setup
     @packages  = TestFixtures.packages
     @locations = TestFixtures.locations
-    @carrier   = FedEx.new(fixtures(:fedex).merge(:test => true))
+    @carrier   = FedEx.new(fixtures(:fedex))
+    @carrier.test_mode = true if @carrier.test_mode.nil?
     FedEx.logger = Logger.new('/Users/james/.active_merchant/fedex.log')
   end
-    
+
   def test_valid_credentials
     assert @carrier.valid_credentials?
   end
-    
+
   def test_us_to_canada
     response = nil
     assert_nothing_raised do
