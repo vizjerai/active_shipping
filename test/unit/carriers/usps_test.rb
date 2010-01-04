@@ -34,7 +34,7 @@ class USPSTest < Test::Unit::TestCase
 
     assert_not_equal [], response.rates
     assert_equal ["1", "2", "3", "4", "5", "6", "7", "13", "16", "17", "22", "27", "28"], response.rates.map(&:service_code).sort {|a,b| a.to_i <=> b.to_i}
-    assert_equal ["USPS Bound Printed Matter", "USPS Express Mail", "USPS Express Mail Flat-Rate Envelope", "USPS Express Mail Flat-Rate Envelope Hold For Pickup", "USPS Express Mail Hold For Pickup", "USPS Library Mail", "USPS Media Mail", "USPS Parcel Post", "USPS Priority Mail", "USPS Priority Mail Flat-Rate Envelope", "USPS Priority Mail Large Flat-Rate Box", "USPS Priority Mail Regular/Medium Flat-Rate Boxes", "USPS Priority Mail Small Flat-Rate Box"], response.rates.map(&:service_name).sort
+    assert_equal ["USPS Bound Printed Matter", "USPS Express Mail", "USPS Express Mail Flat Rate Envelope", "USPS Express Mail Flat Rate Envelope Hold For Pickup", "USPS Express Mail Hold For Pickup", "USPS Library Mail", "USPS Media Mail", "USPS Parcel Post", "USPS Priority Mail", "USPS Priority Mail Flat Rate Envelope", "USPS Priority Mail Large Flat Rate Box", "USPS Priority Mail Medium Flat Rate Box", "USPS Priority Mail Small Flat Rate Box"], response.rates.map(&:service_name).sort
     assert_equal [709, 749, 953, 990, 990, 1993, 2070, 2790, 2970, 3500, 3500, 7680, 7680], response.rates.map(&:total_price)
   end
 
@@ -52,7 +52,7 @@ class USPSTest < Test::Unit::TestCase
 
     assert_not_equal [],response.rates
     assert_equal ["1", "2", "4", "6", "7", "12"], response.rates.map(&:service_code).sort {|a,b| a.to_i <=> b.to_i}
-    assert_equal ["USPS Express Mail International (EMS)", "USPS Global Express Guaranteed", "USPS Global Express Guaranteed Non-Document Non-Rectangular", "USPS Global Express Guaranteed Non-Document Rectangular", "USPS Priority Mail International", "USPS USPS GXG Envelopes"], response.rates.map(&:service_name).sort
+    assert_equal ["USPS Express Mail International", "USPS Global Express Guaranteed (GXG)", "USPS Global Express Guaranteed Non-Document Non-Rectangular", "USPS Global Express Guaranteed Non-Document Rectangular", "USPS Priority Mail International", "USPS USPS GXG Envelopes"], response.rates.map(&:service_name).sort
     assert_equal [5025, 8375, 13025, 13025, 13025, 13025], response.rates.map(&:total_price)
   end
 

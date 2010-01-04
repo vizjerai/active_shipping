@@ -9,14 +9,14 @@
 	<Machinable>TRUE</Machinable>
 	<Zone>8</Zone>
 	<Postage CLASSID="2"><MailService>Express Mail Hold For Pickup</MailService><Rate>25.15</Rate></Postage>
-	<Postage CLASSID="27"><MailService>Express Mail Flat-Rate Envelope Hold For Pickup</MailService><Rate>17.50</Rate></Postage>
+	<Postage CLASSID="27"><MailService>Express Mail Flat Rate Envelope Hold For Pickup</MailService><Rate>17.50</Rate></Postage>
 	<Postage CLASSID="3"><MailService>Express Mail</MailService><Rate>25.15</Rate></Postage>
-	<Postage CLASSID="13"><MailService>Express Mail Flat-Rate Envelope</MailService><Rate>17.50</Rate></Postage>
+	<Postage CLASSID="13"><MailService>Express Mail Flat Rate Envelope</MailService><Rate>17.50</Rate></Postage>
 	<Postage CLASSID="1"><MailService>Priority Mail</MailService><Rate>4.95</Rate></Postage>
-	<Postage CLASSID="16"><MailService>Priority Mail Flat-Rate Envelope</MailService><Rate>4.95</Rate></Postage>
-	<Postage CLASSID="28"><MailService>Priority Mail Small Flat-Rate Box</MailService><Rate>4.95</Rate></Postage>
-	<Postage CLASSID="17"><MailService>Priority Mail Regular/Medium Flat-Rate Boxes</MailService><Rate>10.35</Rate></Postage>
-	<Postage CLASSID="22"><MailService>Priority Mail Large Flat-Rate Box</MailService><Rate>13.95</Rate></Postage>
+	<Postage CLASSID="16"><MailService>Priority Mail Flat Rate Envelope</MailService><Rate>4.95</Rate></Postage>
+	<Postage CLASSID="28"><MailService>Priority Mail Small Flat Rate Box</MailService><Rate>4.95</Rate></Postage>
+	<Postage CLASSID="17"><MailService>Priority Mail Medium Flat Rate Box</MailService><Rate>10.35</Rate></Postage>
+	<Postage CLASSID="22"><MailService>Priority Mail Large Flat Rate Box</MailService><Rate>13.95</Rate></Postage>
 	<Postage CLASSID="0"><MailService>First-Class Mail Flat</MailService><Rate>2.24</Rate></Postage>
 	<Postage CLASSID="0"><MailService>First-Class Mail Parcel</MailService><Rate>2.58</Rate></Postage>
 	<Postage CLASSID="4"><MailService>Parcel Post</MailService><Rate>4.90</Rate></Postage>
@@ -33,14 +33,14 @@
 	<Machinable>TRUE</Machinable>
 	<Zone>8</Zone>
 	<Postage CLASSID="2"><MailService>Express Mail Hold For Pickup</MailService><Rate>51.65</Rate></Postage>
-	<Postage CLASSID="27"><MailService>Express Mail Flat-Rate Envelope Hold For Pickup</MailService><Rate>17.50</Rate></Postage>
+	<Postage CLASSID="27"><MailService>Express Mail Flat Rate Envelope Hold For Pickup</MailService><Rate>17.50</Rate></Postage>
 	<Postage CLASSID="3"><MailService>Express Mail</MailService><Rate>51.65</Rate></Postage>
-	<Postage CLASSID="13"><MailService>Express Mail Flat-Rate Envelope</MailService><Rate>17.50</Rate></Postage>
+	<Postage CLASSID="13"><MailService>Express Mail Flat Rate Envelope</MailService><Rate>17.50</Rate></Postage>
 	<Postage CLASSID="1"><MailService>Priority Mail</MailService><Rate>24.75</Rate></Postage>
-	<Postage CLASSID="16"><MailService>Priority Mail Flat-Rate Envelope</MailService><Rate>4.95</Rate></Postage>
-	<Postage CLASSID="28"><MailService>Priority Mail Small Flat-Rate Box</MailService><Rate>4.95</Rate></Postage>
-	<Postage CLASSID="17"><MailService>Priority Mail Regular/Medium Flat-Rate Boxes</MailService><Rate>10.35</Rate></Postage>
-	<Postage CLASSID="22"><MailService>Priority Mail Large Flat-Rate Box</MailService><Rate>13.95</Rate></Postage>
+	<Postage CLASSID="16"><MailService>Priority Mail Flat Rate Envelope</MailService><Rate>4.95</Rate></Postage>
+	<Postage CLASSID="28"><MailService>Priority Mail Small Flat Rate Box</MailService><Rate>4.95</Rate></Postage>
+	<Postage CLASSID="17"><MailService>Priority Mail Medium Flat Rate Box</MailService><Rate>10.35</Rate></Postage>
+	<Postage CLASSID="22"><MailService>Priority Mail Large Flat Rate Box</MailService><Rate>13.95</Rate></Postage>
 	<Postage CLASSID="4"><MailService>Parcel Post</MailService><Rate>15.03</Rate></Postage>
 	<Postage CLASSID="5"><MailService>Bound Printed Matter</MailService><Rate>6.65</Rate></Postage>
 	<Postage CLASSID="6"><MailService>Media Mail</MailService><Rate>5.11</Rate></Postage>
