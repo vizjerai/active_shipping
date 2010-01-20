@@ -51,6 +51,7 @@ end
 require 'rubygems'
 require 'nokogiri'
 require 'active_support'
+require 'active_merchant'
 
 require 'xml_node'
 require 'quantified'
@@ -58,11 +59,6 @@ require 'quantified/mass'
 require 'quantified/length'
 
 require 'net/https'
-require 'active_shipping/lib/error'
-require 'active_shipping/lib/requires_parameters'
-require 'active_shipping/lib/connection'
-require 'active_shipping/lib/posts_data'
-require 'active_shipping/lib/country'
 
 require 'active_shipping/shipping/base'
 require 'active_shipping/shipping/response'
